@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -78,15 +79,26 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
           </View>
         </View>
 
-        <Text style={[styles.headline, { color: colors.foreground }]} numberOfLines={compact ? 2 : 3}>
-          {article.headline}
-        </Text>
+        <View style={styles.bodyRow}>
+          <View style={styles.bodyContent}>
+            <Text style={[styles.headline, { color: colors.foreground }]} numberOfLines={compact ? 2 : 3}>
+              {article.headline}
+            </Text>
 
-        {!compact && (
-          <Text style={[styles.summary, { color: colors.mutedForeground }]} numberOfLines={2}>
-            {article.summary}
-          </Text>
-        )}
+            {!compact && (
+              <Text style={[styles.summary, { color: colors.mutedForeground }]} numberOfLines={2}>
+                {article.summary}
+              </Text>
+            )}
+          </View>
+          {article.imageUrl && (
+            <Image
+              source={{ uri: article.imageUrl }}
+              style={styles.thumbnail}
+              resizeMode="cover"
+            />
+          )}
+        </View>
 
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
@@ -158,6 +170,21 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     gap: 10,
+  },
+  bodyRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  bodyContent: {
+    flex: 1,
+    gap: 6,
+  },
+  thumbnail: {
+    width: 76,
+    height: 76,
+    borderRadius: 8,
+    backgroundColor: "#e1e5eb",
   },
   header: {
     flexDirection: "row",

@@ -33,6 +33,7 @@ export const GetArticlesResponseItem = zod.object({
   "url": zod.string(),
   "credibilityScore": zod.number(),
   "imageColor": zod.string(),
+  "imageUrl": zod.string().optional(),
   "isBreaking": zod.boolean().optional()
 })
 export const GetArticlesResponse = zod.array(GetArticlesResponseItem)
