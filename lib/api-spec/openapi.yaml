@@ -73,6 +73,8 @@ components:
           type: integer
         imageColor:
           type: string
+        imageUrl:
+          type: string
         isBreaking:
           type: boolean
       required:

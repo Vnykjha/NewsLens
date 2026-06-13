@@ -21,6 +21,7 @@ export interface Article {
   url: string;
   credibilityScore: number;
   imageColor: string;
+  imageUrl?: string;
   isBreaking?: boolean;
 }
 
