@@ -19,6 +19,31 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
+import { setBaseUrl } from "@workspace/api-client-react";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+
+// Get the Metro packager host IP address so it works on physical devices as well as emulators
+const getBaseUrl = () => {
+  if (Platform.OS === "web") {
+    console.log("getBaseUrl: Running on Web, returning localhost");
+    return "http://localhost:5000";
+  }
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  console.log("getBaseUrl: Constants.expoConfig?.hostUri =", debuggerHost);
+  const localhost = debuggerHost?.split(":")[0];
+  if (localhost) {
+    const url = `http://${localhost}:5000`;
+    console.log("getBaseUrl: Resolved dynamic host URL =", url);
+    return url;
+  }
+  console.log("getBaseUrl: Fallback to localhost");
+  return "http://localhost:5000";
+};
+
+const resolvedUrl = getBaseUrl();
+console.log("Resolved API Base URL set to:", resolvedUrl);
+setBaseUrl(resolvedUrl);
 
 SplashScreen.preventAutoHideAsync();
 

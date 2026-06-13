@@ -5,7 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Article } from './article';
 
-export * from './article';
-export * from './articlesResponse';
-export * from './healthStatus';
+export type ArticlesResponse = Article[];

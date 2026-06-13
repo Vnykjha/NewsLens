@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArticleCard } from "@/components/ArticleCard";
 import { useColors } from "@/hooks/useColors";
 import { MOCK_ARTICLES } from "@/lib/mockData";
+import { useGetArticles } from "@workspace/api-client-react";
 
 const TOPICS = [
   { id: "t1", name: "AI & Tech", icon: "cpu", color: "#6D28D9" },
@@ -43,8 +44,11 @@ export default function ExploreScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 60;
 
+  const { data: articles = [] } = useGetArticles();
+  const activeArticles = articles && articles.length > 0 ? articles : MOCK_ARTICLES;
+
   const results = query.length > 1
-    ? MOCK_ARTICLES.filter(
+    ? activeArticles.filter(
         (a) =>
           a.headline.toLowerCase().includes(query.toLowerCase()) ||
           a.publisher.toLowerCase().includes(query.toLowerCase()) ||
@@ -160,7 +164,7 @@ export default function ExploreScreen() {
 
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>All Articles</Text>
-              {MOCK_ARTICLES.map((article) => (
+              {activeArticles.map((article) => (
                 <ArticleCard key={article.id} article={article} />
               ))}
             </View>
