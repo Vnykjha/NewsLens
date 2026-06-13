@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface Article {
   id: string;
@@ -23,6 +20,3 @@ export interface Article {
   imageColor: string;
   isBreaking?: boolean;
 }
-
-export type ArticlesResponse = Article[];
-

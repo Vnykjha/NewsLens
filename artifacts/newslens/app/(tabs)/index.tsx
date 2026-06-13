@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArticleCard } from "@/components/ArticleCard";
 import { useColors } from "@/hooks/useColors";
 import { MOCK_ARTICLES, TRENDING_ARTICLES } from "@/lib/mockData";
+import { useGetArticles } from "@workspace/api-client-react";
 
 const CATEGORIES = ["All", "Politics", "Technology", "Business", "Science", "Sports"];
 
@@ -26,17 +27,30 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  const { data: articles = [], refetch, error, isError } = useGetArticles();
+  if (isError) {
+    console.error("HomeScreen: Failed to fetch articles:", error);
+  }
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 60;
 
+  const activeArticles = articles && articles.length > 0 ? articles : MOCK_ARTICLES;
+
   const filtered =
     selectedCategory === "All"
-      ? MOCK_ARTICLES
-      : MOCK_ARTICLES.filter((a) => a.category === selectedCategory);
+      ? activeArticles
+      : activeArticles.filter((a) => a.category === selectedCategory);
 
-  const onRefresh = () => {
+  const trendingArticles =
+    articles && articles.length > 0 ? activeArticles.slice(0, 4) : TRENDING_ARTICLES;
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1200);
+    try {
+      await refetch();
+    } catch {}
+    setRefreshing(false);
   };
 
   const headerOpacity = scrollY.interpolate({
@@ -133,7 +147,7 @@ export default function HomeScreen() {
                 Trending
               </Text>
             </View>
-            {TRENDING_ARTICLES.map((article) => (
+            {trendingArticles.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
           </View>

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: articles
+    description: Article operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /articles:
+    get:
+      operationId: getArticles
+      tags: [articles]
+      summary: Get articles
+      description: Returns list of news articles
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +48,47 @@ components:
           type: string
       required:
         - status
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+        headline:
+          type: string
+        publisher:
+          type: string
+        publisherInitial:
+          type: string
+        publishedAt:
+          type: string
+        readingTime:
+          type: integer
+        category:
+          type: string
+        summary:
+          type: string
+        url:
+          type: string
+        credibilityScore:
+          type: integer
+        imageColor:
+          type: string
+        isBreaking:
+          type: boolean
+      required:
+        - id
+        - headline
+        - publisher
+        - publisherInitial
+        - publishedAt
+        - readingTime
+        - category
+        - summary
+        - url
+        - credibilityScore
+        - imageColor
+    ArticlesResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/Article"
 

@@ -17,6 +17,7 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { MOCK_ARTICLES } from "@/lib/mockData";
 import { getAnalysis } from "@/lib/mockAnalysis";
+import { useGetArticles } from "@workspace/api-client-react";
 
 const PERSPECTIVES_TABS = ["Supporting", "Alternative", "Contradictory"] as const;
 
@@ -29,7 +30,10 @@ export default function AnalysisScreen() {
   const [perspTab, setPerspTab] = useState<(typeof PERSPECTIVES_TABS)[number]>("Supporting");
   const [expandedSection, setExpandedSection] = useState<string | null>("tldr");
 
-  const article = MOCK_ARTICLES.find((a) => a.id === id) ?? MOCK_ARTICLES[0];
+  const { data: articles = [] } = useGetArticles();
+  const activeArticles = articles && articles.length > 0 ? articles : MOCK_ARTICLES;
+
+  const article = activeArticles.find((a) => a.id === id) ?? MOCK_ARTICLES.find((a) => a.id === id) ?? MOCK_ARTICLES[0];
   const analysis = getAnalysis(id ?? "1");
   const saved = isArticleSaved(article.id);
 

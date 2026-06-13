@@ -153,6 +153,32 @@ export const MOCK_ARTICLES: Article[] = [
     credibilityScore: 90,
     imageColor: "#FF6B00",
   },
+  {
+    id: "9",
+    headline: "Formula 1: Hamilton Secures Dramatic Victory at Silverstone Grand Prix",
+    publisher: "BBC Sport",
+    publisherInitial: "BB",
+    publishedAt: "1 day ago",
+    readingTime: 5,
+    category: "Sports",
+    summary: "Lewis Hamilton held off a late charge to win his home Grand Prix at Silverstone, marking a historic ninth victory at the circuit.",
+    url: "https://bbc.co.uk/sport/f1",
+    credibilityScore: 92,
+    imageColor: "#FF6B00",
+  },
+  {
+    id: "10",
+    headline: "NBA Finals: Celtics Clinch Record-Breaking 18th Championship Title",
+    publisher: "ESPN",
+    publisherInitial: "ES",
+    publishedAt: "2 days ago",
+    readingTime: 6,
+    category: "Sports",
+    summary: "The Boston Celtics defeated the Dallas Mavericks to claim their 18th championship title, breaking their tie with the Lakers.",
+    url: "https://espn.com/nba",
+    credibilityScore: 88,
+    imageColor: "#FF6B00",
+  },
 ];
 
 export const TRENDING_ARTICLES = MOCK_ARTICLES.slice(0, 4);

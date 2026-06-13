@@ -22,4 +22,19 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Pre-fetch articles to populate cache on startup
+  const apiKey = process.env.NEWS_API_KEY;
+  if (apiKey && !apiKey.startsWith("your_")) {
+    import("./services/newsService").then(({ revalidateCache }) => {
+      logger.info("Pre-fetching news articles on startup...");
+      revalidateCache(apiKey)
+        .then(() => {
+          logger.info("Initial news articles pre-fetched and cached successfully.");
+        })
+        .catch((err) => {
+          logger.error({ err }, "Failed to pre-fetch news articles on startup");
+        });
+    });
+  }
 });
