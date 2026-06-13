@@ -1,0 +1,385 @@
+Build a mobile-first application called "NewsLens".
+
+OVERVIEW
+
+NewsLens is an AI-native news intelligence platform that helps users understand a news story rather than simply consume it. The app acts as a "second opinion" for every article by providing credibility analysis, multiple perspectives, contextual summaries, citations, and community-driven discussion.
+
+The primary goal is to help users answer:
+
+* Is this article credible?
+* What are other sources saying?
+* What context am I missing?
+* What happened before this?
+* Is any media being manipulated?
+* What do other readers think?
+
+TECH STACK
+
+Frontend:
+
+* Flutter
+* Material 3
+* Clean component structure
+* Responsive mobile-first UI
+
+Backend:
+
+* FastAPI
+* Simple REST API architecture
+* Minimal complexity
+* Clear folder structure
+* SQLite for MVP
+* Easy migration to PostgreSQL later
+
+AI:
+
+* Gemini API
+* Modular AI service layer
+
+DESIGN STYLE
+
+DO NOT create a modern SaaS dashboard.
+
+DO NOT use dark themes, glowing gradients, cyberpunk styling, glassmorphism, coding aesthetics, terminal-like UIs, or futuristic AI visuals.
+
+The design should feel like:
+
+* A modern newspaper
+* A magazine
+* Substack
+* Medium
+* Instagram-level usability
+
+Visual Style:
+
+* White background
+* Light grey cards
+* Black typography
+* Newspaper-inspired headings
+* Serif fonts for article titles
+* Sans-serif fonts for body text
+* High readability
+* Rounded but subtle corners
+* Minimal clutter
+* Clean spacing
+
+The experience should feel:
+
+* Trustworthy
+* Editorial
+* Human
+* Simple
+* Fast
+
+INFORMATION ARCHITECTURE
+
+Bottom Navigation:
+
+1. Home
+2. Explore
+3. Save
+4. Community
+5. Profile
+
+HOME SCREEN
+
+Purpose:
+News feed and article discovery.
+
+Sections:
+
+* Trending Stories
+* Latest Articles
+* Recommended Topics
+* Publisher Highlights
+
+Article Cards:
+
+* Headline
+* Publisher
+* Reading Time
+* Save Button
+* Analyze Button
+
+EXPLORE SCREEN
+
+Search:
+
+* Keywords
+* Topics
+* Publishers
+
+Filters:
+
+* Politics
+* Technology
+* Business
+* Science
+* Sports
+
+SAVE SCREEN
+
+Folder-based article management.
+
+Users can:
+
+* Create folders
+* Rename folders
+* Delete folders
+* Save articles
+
+Examples:
+
+* AI Regulation
+* India Elections
+* Climate Change
+* Geopolitics
+
+ARTICLE ANALYSIS SCREEN
+
+This is the most important screen.
+
+When a user opens an article, generate a complete intelligence report.
+
+Sections:
+
+1. TL;DR
+
+2. Context
+
+3. Key Claims
+
+4. Stakeholders
+
+5. Risks
+
+6. Opportunities
+
+7. Future Implications
+
+8. Related Stories
+
+9. Story Timeline
+
+10. Citations
+
+11. Credibility Analysis
+
+12. Community Notes
+
+The layout should feel like reading a newspaper feature article.
+
+MULTI-PERSPECTIVE ANALYSIS
+
+For every article display:
+
+Supporting Coverage:
+Articles reaching similar conclusions.
+
+Alternative Perspectives:
+Different framing and interpretations.
+
+Contradictory Coverage:
+Sources challenging the claims.
+
+Users should immediately understand:
+"The other side of the story."
+
+CREDIBILITY ANALYSIS
+
+Never label content as simply True or False.
+
+Instead show:
+
+Credibility Score
+
+Source Reputation
+
+Evidence Strength
+
+Cross-Source Verification
+
+Missing Evidence
+
+Potential Bias Indicators
+
+Output example:
+
+Credibility Score: 82/100
+
+Reasons:
+
+* Multiple independent sources
+* Supporting evidence found
+* Contradictory reporting available
+
+AI SUMMARY ENGINE
+
+Generate:
+
+TL;DR
+
+Context
+
+Background
+
+Key Takeaways
+
+Risks
+
+Opportunities
+
+Future Impact
+
+Related Events
+
+CITATIONS
+
+Every AI-generated statement must include citations.
+
+Users should be able to tap citations and view the original source.
+
+MEDIA AUTHENTICITY SCREEN
+
+Analyze images and videos.
+
+Show:
+
+AI-Generated Probability
+
+Metadata Availability
+
+Authenticity Indicators
+
+Warnings
+
+Example:
+
+AI-generated likelihood: High
+
+Warning:
+Potentially AI-generated media detected.
+
+COMMUNITY SCREEN
+
+Users can:
+
+Upvote articles
+
+Downvote articles
+
+Comment
+
+Add Community Notes
+
+Share additional sources
+
+Community Notes should appear below article analysis.
+
+PUBLISHER PLATFORM
+
+Create a simple publisher dashboard.
+
+Publishers can:
+
+Upload Articles
+
+Upload News Videos
+
+Publish Newsletters
+
+Set Content:
+
+* Free
+* Premium
+
+For MVP use mock data and simple CRUD functionality.
+
+PROFILE SCREEN
+
+Users can:
+
+View saved folders
+
+Manage preferences
+
+View reading history
+
+Manage subscriptions
+
+BACKEND API STRUCTURE
+
+Keep backend simple and hackathon-friendly.
+
+Modules:
+
+/articles
+/analyze
+/folders
+/community
+/publishers
+/media-check
+/search
+
+Use FastAPI routers.
+
+Keep services modular.
+
+Avoid advanced architecture patterns.
+
+DATABASE TABLES
+
+Users
+
+Articles
+
+Folders
+
+SavedArticles
+
+Comments
+
+CommunityNotes
+
+Publishers
+
+MediaChecks
+
+API ENDPOINTS
+
+POST /analyze
+
+POST /save-article
+
+GET /related-articles
+
+GET /perspectives
+
+GET /citations
+
+POST /media-check
+
+POST /comment
+
+POST /community-note
+
+POST /publisher/upload
+
+HACKATHON PRIORITY
+
+Highest Priority:
+
+1. Article Input
+2. AI Summary
+3. Related Perspectives
+4. Credibility Analysis
+5. Citations
+6. Folder Saving
+
+Secondary:
+
+7. Community Notes
+8. Publisher Dashboard
+9. Media Authenticity Detection
+
+The final product should feel like a newspaper designed for the AI era: trustworthy, simple, highly readable, mobile-first, and focused on helping users understand news rather than endlessly consume it.
