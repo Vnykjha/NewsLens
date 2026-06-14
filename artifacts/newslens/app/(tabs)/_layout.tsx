@@ -15,9 +15,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "house", selected: "house.fill" }} />
         <Label>Home</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <Icon sf={{ default: "magnifyingglass", selected: "magnifyingglass" }} />
-        <Label>Explore</Label>
+      <NativeTabs.Trigger name="analyze">
+        <Icon sf={{ default: "checkmark.shield", selected: "checkmark.shield.fill" }} />
+        <Label>Analyze</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="saved">
         <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
@@ -26,10 +26,6 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="ask">
         <Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} />
         <Label>Ask AI</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="community">
-        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-        <Label>Community</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
@@ -93,12 +89,18 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          href: null, // Hide from tab bar, but keep route
+        }}
+      />
+      <Tabs.Screen
+        name="analyze"
+        options={{
+          title: "Analyze",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="magnifyingglass" tintColor={color} size={22} />
+              <SymbolView name="checkmark.shield.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="search" size={20} color={color} />
+              <Feather name="shield" size={20} color={color} />
             ),
         }}
       />
@@ -129,13 +131,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Community",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person.2.fill" tintColor={color} size={22} />
-            ) : (
-              <Feather name="users" size={20} color={color} />
-            ),
+          href: null, // Hide from tab bar, but keep route
         }}
       />
       <Tabs.Screen
