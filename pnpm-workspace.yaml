@@ -82,3 +82,4 @@ overrides:
 
 allowBuilds:
   esbuild: false
+  llama.rn: set this to true or false

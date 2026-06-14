@@ -360,7 +360,7 @@ export function usePocketPal() {
     return { content: response, citations };
   }, []);
 
-  // Send message to PocketPal server, falling back to simulated mode if needed
+  // Send message to backend server (using OpenRouter Qwen), falling back to simulated mode if needed
   const sendMessage = useCallback(
     async (
       messages: { role: "user" | "assistant"; content: string }[],
@@ -368,7 +368,7 @@ export function usePocketPal() {
     ): Promise<{ content: string; citations: Citation[] }> => {
       const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-      // Load article analysis context dynamically from the API server
+      // Load article analysis context dynamically from the API server for citations
       let loadedAnalysis: any = null;
       if (articleId) {
         try {
@@ -387,80 +387,39 @@ export function usePocketPal() {
         }
       }
 
-      if (!isConnected) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        return generateSimulatedResponse(lastUserMessage, articleId, loadedAnalysis);
-      }
-
       try {
-        const cleanedUrl = apiUrl.replace(/\/$/, "");
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6-second timeout for local requests
-
-        let systemPrompt =
-          "You are an intelligent, erudite newspaper editor answering user questions. Answer concisely, focusing on evidence. ";
-        
-        if (loadedAnalysis) {
-          const headline = loadedAnalysis.headline || "Selected Article";
-          const publisher = loadedAnalysis.publisher || "Publisher";
-          systemPrompt += `You are answering questions about the article titled "${headline}" published by ${publisher}. `;
-          systemPrompt += `Here is the editorial intelligence report for the article: `;
-          systemPrompt += `TLDR: ${loadedAnalysis.tldr}. `;
-          systemPrompt += `Context: ${loadedAnalysis.context}. `;
-          systemPrompt += `Claims: ${loadedAnalysis.keyClaims?.join("; ") || ""}. `;
-          systemPrompt += `Bias Indicators: ${loadedAnalysis.potentialBias?.join("; ") || ""}. `;
-          systemPrompt += `Credibility Score: ${loadedAnalysis.credibilityScore}. `;
-          systemPrompt += `Implications: ${loadedAnalysis.futureImplications}. `;
-          systemPrompt += `Use this factual context to construct your response. If facts are requested, cite them by referencing [1], [2] corresponding to these sources: `;
-          if (loadedAnalysis.citations) {
-            loadedAnalysis.citations.forEach((c: any, idx: number) => {
-              systemPrompt += `[${idx + 1}] Source Title: "${c.title}" by ${c.publisher}. `;
-            });
-          }
-        }
-
-        const chatMessages = [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ];
-
-        const response = await fetch(`${cleanedUrl}/chat/completions`, {
+        const newsUrl = getNewsApiBaseUrl();
+        const response = await fetch(`${newsUrl}/api/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: modelName,
-            messages: chatMessages,
-            temperature: 0.2,
+            messages,
+            articleId,
           }),
-          signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
         if (!response.ok) {
-          throw new Error("API responded with an error");
+          throw new Error("Chat backend failed");
         }
 
         const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || "";
         const citations = loadedAnalysis ? (loadedAnalysis.citations || []) : [];
-
-        return { content, citations };
+        return { content: data.content, citations };
       } catch (err) {
-        console.warn("PocketPal API request failed, falling back to simulated engine:", err);
+        console.warn("Backend chat failed, falling back to simulated engine:", err);
         await new Promise((resolve) => setTimeout(resolve, 1200));
         return generateSimulatedResponse(lastUserMessage, articleId, loadedAnalysis);
       }
     },
-    [apiUrl, modelName, isConnected, generateSimulatedResponse]
+    [generateSimulatedResponse]
   );
 
   return {
     apiUrl,
     modelName,
-    isConnected,
+    isConnected: true,
     isChecking,
     updateApiUrl,
     updateModelName,

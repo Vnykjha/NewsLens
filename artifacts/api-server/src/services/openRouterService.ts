@@ -745,3 +745,75 @@ Respond ONLY with the raw JSON string (do not wrap in markdown \`\`\`json).
   analysisCache[articleId] = analysis;
   return { article, analysis };
 }
+
+export async function generateChatResponse(
+  messages: { role: string; content: string }[],
+  articleId?: string
+): Promise<{ content: string }> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || apiKey.startsWith("your_")) {
+    console.warn("No OPENROUTER_API_KEY. Returning simulated chat response.");
+    return { content: "No OpenRouter API key configured. This is a simulated response from the assistant." };
+  }
+
+  // Load article analysis if articleId is provided
+  let systemPrompt = "You are an intelligent, erudite newspaper editor answering user questions. Answer concisely, focusing on evidence. ";
+  if (articleId && analysisCache[articleId]) {
+    const loadedAnalysis = analysisCache[articleId];
+    const headline = loadedAnalysis.headline || "Selected Article";
+    const publisher = loadedAnalysis.publisher || "Publisher";
+    systemPrompt += `You are answering questions about the article titled "${headline}" published by ${publisher}. `;
+    systemPrompt += `Here is the editorial intelligence report for the article: `;
+    systemPrompt += `TLDR: ${loadedAnalysis.tldr}. `;
+    systemPrompt += `Context: ${loadedAnalysis.context}. `;
+    systemPrompt += `Claims: ${loadedAnalysis.keyClaims?.join("; ") || ""}. `;
+    systemPrompt += `Bias Indicators: ${loadedAnalysis.potentialBias?.join("; ") || ""}. `;
+    systemPrompt += `Credibility Score: ${loadedAnalysis.credibilityScore}. `;
+    systemPrompt += `Implications: ${loadedAnalysis.futureImplications}. `;
+    systemPrompt += `Use this factual context to construct your response. If facts are requested, cite them by referencing [1], [2] corresponding to these sources: `;
+    if (loadedAnalysis.citations) {
+      loadedAnalysis.citations.forEach((c: any, idx: number) => {
+        systemPrompt += `[${idx + 1}] Source Title: "${c.title}" by ${c.publisher}. `;
+      });
+    }
+  }
+
+  const cleanedMessages = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  const chatMessages = [
+    { role: "system", content: systemPrompt },
+    ...cleanedMessages,
+  ];
+
+  try {
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://newslens.mobile",
+        "X-Title": "NewsLens Mobile",
+      },
+      body: JSON.stringify({
+        model: "qwen/qwen-2.5-72b-instruct",
+        messages: chatMessages,
+        temperature: 0.5,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter chat API responded with status ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    const content = data.choices?.[0]?.message?.content || "";
+    return { content };
+  } catch (err) {
+    console.error("OpenRouter chat failed:", err);
+    throw err;
+  }
+}
