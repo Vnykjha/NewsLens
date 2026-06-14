@@ -385,6 +385,12 @@ export async function revalidateCache(apiKey: string): Promise<void> {
   }
 }
 
+export function addArticleToCache(article: Article) {
+  if (!cachedArticles.some((a) => a.id === article.id)) {
+    cachedArticles.unshift(article);
+  }
+}
+
 export async function getNewsArticles(): Promise<Article[]> {
   const apiKey = process.env.NEWS_API_KEY;
   if (!apiKey || apiKey.startsWith("your_")) {

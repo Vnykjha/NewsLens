@@ -1,9 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Image,
   Keyboard,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,157 +17,244 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import { useColors } from "@/hooks/useColors";
-import { MOCK_ARTICLES } from "@/lib/mockData";
-import { useGetArticles } from "@workspace/api-client-react";
+import { useApp } from "@/context/AppContext";
+
+// Dynamically resolve the NewsLens API server URL
+const getNewsApiBaseUrl = () => {
+  if (Platform.OS === "web") return "http://localhost:5000";
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  const localhost = debuggerHost?.split(":")[0];
+  return localhost ? `http://${localhost}:5000` : "http://localhost:5000";
+};
 
 export default function AnalyzeDashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
+  const { addToHistory } = useApp();
+
+  const [link, setLink] = useState("");
+  const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [isAuditLoading, setIsAuditLoading] = useState(false);
+  const [auditStatus, setAuditStatus] = useState("Auditing credibility index...");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 60;
 
-  const { data: articles = [] } = useGetArticles();
-  const activeArticles = articles && articles.length > 0 ? articles : MOCK_ARTICLES;
-
-  // Filter articles by query
-  const filteredArticles = activeArticles.filter((a) =>
-    a.headline.toLowerCase().includes(query.toLowerCase()) ||
-    a.publisher.toLowerCase().includes(query.toLowerCase()) ||
-    a.category.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const handleArticlePress = (id: string) => {
+  const pickImage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/analysis/${id}`);
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0]) {
+      const asset = result.assets[0];
+      setScreenshotUri(asset.uri);
+      
+      if (asset.base64) {
+        setIsOcrLoading(true);
+        try {
+          const newsUrl = getNewsApiBaseUrl();
+          const response = await fetch(`${newsUrl}/api/ocr`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image: asset.base64 }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setText(data.text);
+          } else {
+            alert("Failed to perform OCR on screenshot.");
+          }
+        } catch (err) {
+          console.error("OCR upload error:", err);
+          alert("Error connecting to OCR server.");
+        } finally {
+          setIsOcrLoading(false);
+        }
+      }
+    }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header & Search */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topPad + 12,
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Factual Audits</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.mutedForeground }]}>
-          Review credibility ratings for today's briefing
+  const handleRunAudit = async () => {
+    if (!link.trim() && !screenshotUri && !text.trim()) {
+      alert("Please provide at least one input: an Article Link/URL, a Screenshot, or copy-pasted Text.");
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsAuditLoading(true);
+    setAuditStatus("Running dual-model audit...");
+
+    // Cycle through messages to indicate progress
+    const statuses = [
+      "Running credibility audit via DeepSeek...",
+      "Extracting summaries via Minimax...",
+      "Correlating timeline and claims...",
+      "Compiling analysis report..."
+    ];
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = (idx + 1) % statuses.length;
+      setAuditStatus(statuses[idx]);
+    }, 3500);
+
+    try {
+      const newsUrl = getNewsApiBaseUrl();
+      const response = await fetch(`${newsUrl}/api/articles/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: link, text: text }),
+      });
+
+      clearInterval(interval);
+
+      if (!response.ok) {
+        throw new Error("Analysis failed");
+      }
+
+      const result = await response.json();
+      
+      // Add the new article to local app history
+      addToHistory(result.article);
+
+      // Navigate to the newly generated report
+      router.push(`/analysis/${result.article.id}`);
+    } catch (err) {
+      clearInterval(interval);
+      console.error("Audit failed:", err);
+      alert("Failed to run credibility audit. Please check your network and API keys.");
+    } finally {
+      setIsAuditLoading(false);
+    }
+  };
+
+  if (isAuditLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center", padding: 30 }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.foreground, marginTop: 24, textAlign: "center" }}>
+          {auditStatus}
         </Text>
-
-        <View
-          style={[
-            styles.searchRow,
-            {
-              backgroundColor: colors.card,
-              borderColor: focused ? colors.primary : colors.border,
-            },
-          ]}
-        >
-          <Feather name="search" size={16} color={colors.mutedForeground} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search audited stories..."
-            placeholderTextColor={colors.mutedForeground}
-            value={query}
-            onChangeText={setQuery}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => { setQuery(""); Keyboard.dismiss(); }}>
-              <Feather name="x" size={16} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: 8, textAlign: "center" }}>
+          Analyzing credibility with DeepSeek & Minimax. This takes a few seconds.
+        </Text>
       </View>
+    );
+  }
 
-      {/* Dashboard List */}
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad + 16 }]}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: topPad + 12, paddingBottom: bottomPad + 30 }}
       >
-        <View style={styles.dashboardGrid}>
-          {filteredArticles.map((article) => {
-            const credColor =
-              article.credibilityScore >= 80
-                ? colors.credibilityHigh
-                : article.credibilityScore >= 60
-                ? colors.credibilityMedium
-                : colors.credibilityLow;
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Factual Auditing</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.mutedForeground }]}>
+          Submit any article to perform a dual-model credibility and summarization audit
+        </Text>
 
-            return (
-              <TouchableOpacity
-                key={article.id}
-                style={[
-                  styles.auditCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-                onPress={() => handleArticlePress(article.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.cardHeader}>
-                  <View style={[styles.pubBadge, { backgroundColor: article.imageColor + "15" }]}>
-                    <Text style={[styles.pubText, { color: article.imageColor }]}>
-                      {article.publisher}
-                    </Text>
-                  </View>
-                  <Text style={[styles.category, { color: colors.mutedForeground }]}>
-                    {article.category}
-                  </Text>
-                </View>
+        <View style={styles.form}>
+          {/* Link field */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Article Link / URL</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
+            placeholder="https://example.com/news-story"
+            placeholderTextColor={colors.mutedForeground}
+            value={link}
+            onChangeText={setLink}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+          />
 
-                <Text style={[styles.headline, { color: colors.foreground }]} numberOfLines={2}>
-                  {article.headline}
+          {/* Screenshot field */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Screenshot Upload (Google ML OCR)</Text>
+          <TouchableOpacity
+            style={[styles.uploadBox, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={pickImage}
+            disabled={isOcrLoading}
+          >
+            {isOcrLoading ? (
+              <View style={styles.loaderCenter}>
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text style={[styles.uploadText, { color: colors.mutedForeground, marginTop: 8 }]}>
+                  Performing Google ML text recognition...
                 </Text>
-
-                <View style={styles.cardFooter}>
-                  <View style={styles.scoreRow}>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        { borderColor: credColor, backgroundColor: credColor + "08" },
-                      ]}
-                    >
-                      <Text style={[styles.scoreText, { color: credColor }]}>
-                        {article.credibilityScore}
-                      </Text>
-                    </View>
-                    <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>
-                      Credibility Index
-                    </Text>
-                  </View>
-
-                  <View style={[styles.actionLink, { backgroundColor: colors.secondary }]}>
-                    <Feather name="arrow-right" size={14} color={colors.foreground} />
-                  </View>
+              </View>
+            ) : screenshotUri ? (
+              <View style={styles.imagePreviewRow}>
+                <Image source={{ uri: screenshotUri }} style={styles.imagePreview} />
+                <View style={{ flex: 1, justifyContent: "center" }}>
+                  <Text style={[styles.uploadTitle, { color: colors.foreground }]}>Screenshot Uploaded</Text>
+                  <Text style={[styles.uploadSub, { color: colors.mutedForeground }]}>Tap to select another image</Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
+              </View>
+            ) : (
+              <View style={styles.uploadCenter}>
+                <Feather name="image" size={24} color={colors.mutedForeground} />
+                <Text style={[styles.uploadTitle, { color: colors.foreground }]}>Upload News Screenshot</Text>
+                <Text style={[styles.uploadSub, { color: colors.mutedForeground }]}>Google ML Kit extracts text instantly</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Text field */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Article Content / Text</Text>
+          <TextInput
+            style={[
+              styles.textArea,
+              { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground },
+            ]}
+            placeholder="Extracted article text will appear here. Or copy-paste the text content directly..."
+            placeholderTextColor={colors.mutedForeground}
+            value={text}
+            onChangeText={setText}
+            multiline
+            numberOfLines={8}
+            textAlignVertical="top"
+          />
+
+          {/* Submit button */}
+          <TouchableOpacity
+            onPress={handleRunAudit}
+            style={[styles.submitBtn, { backgroundColor: colors.primary }]}
+            activeOpacity={0.8}
+          >
+            <Feather name="zap" size={15} color={colors.primaryForeground} style={{ marginRight: 6 }} />
+            <Text style={[styles.submitBtnText, { color: colors.primaryForeground }]}>
+              Run Factual Audit
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    gap: 4,
-  },
   headerTitle: {
     fontSize: 26,
     fontFamily: "PlayfairDisplay_700Bold",
@@ -172,92 +263,81 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontFamily: "Inter_500Medium",
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 20,
+    lineHeight: 18,
   },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  form: {
+    gap: 16,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    marginBottom: -8,
+  },
+  input: {
+    height: 44,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 40,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
   },
-  scrollContent: {
-    padding: 16,
-  },
-  dashboardGrid: {
-    gap: 12,
-  },
-  auditCard: {
-    borderRadius: 12,
+  uploadBox: {
     borderWidth: 1,
+    borderRadius: 8,
+    borderStyle: "dashed",
     padding: 16,
+    minHeight: 90,
+    justifyContent: "center",
+  },
+  uploadCenter: {
+    alignItems: "center",
+    gap: 4,
+  },
+  loaderCenter: {
+    alignItems: "center",
+  },
+  uploadTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  uploadSub: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  imagePreviewRow: {
+    flexDirection: "row",
     gap: 12,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  pubBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  imagePreview: {
+    width: 60,
+    height: 60,
     borderRadius: 6,
+    backgroundColor: "#e1e5eb",
   },
-  pubText: {
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.1,
+  textArea: {
+    minHeight: 140,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
   },
-  category: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-  },
-  headline: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 21,
-  },
-  cardFooter: {
+  submitBtn: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    paddingTop: 10,
-  },
-  scoreRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  scoreBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    height: 46,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 10,
   },
-  scoreText: {
-    fontSize: 10,
+  submitBtnText: {
+    fontSize: 14,
     fontFamily: "Inter_700Bold",
   },
-  scoreLabel: {
-    fontSize: 11,
+  uploadText: {
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
-  },
-  actionLink: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

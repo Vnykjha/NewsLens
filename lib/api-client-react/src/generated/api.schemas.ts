@@ -107,3 +107,21 @@ export interface AnalysisReport {
   mediaAuthenticity: MediaAuthenticity;
 }
 
+export interface AnalyzeArticleRequest {
+  url?: string;
+  text?: string;
+}
+
+export interface AnalyzeArticleResult {
+  article: Article;
+  analysis: AnalysisReport;
+}
+
+export interface OcrRequest {
+  image: string;
+}
+
+export interface OcrResponse {
+  text: string;
+}
+

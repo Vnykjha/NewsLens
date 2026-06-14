@@ -11,6 +11,10 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CredibilityMeter } from "@/components/CredibilityMeter";
@@ -61,6 +65,53 @@ export default function AnalysisScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 34;
 
+  // Fallback to local simulated report if request fails or is loading is complete but returned no data
+  const analysis = dynamicAnalysis || getAnalysis(article.id);
+  const saved = isArticleSaved(article.id);
+
+  const [localNotes, setLocalNotes] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [noteContent, setNoteContent] = useState("");
+  const [noteAuthor, setNoteAuthor] = useState("FactChecker");
+  const [noteSources, setNoteSources] = useState("");
+
+  useEffect(() => {
+    if (analysis && analysis.communityNotes) {
+      setLocalNotes(analysis.communityNotes);
+    }
+  }, [article.id, dynamicAnalysis]);
+
+  const handleAddNoteSubmit = () => {
+    if (!noteAuthor.trim()) {
+      Alert.alert("Error", "Please enter a username or handle.");
+      return;
+    }
+    if (!noteContent.trim()) {
+      Alert.alert("Error", "Please enter note content.");
+      return;
+    }
+    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const sourcesArray = noteSources
+      ? noteSources.split(",").map(s => s.trim()).filter(s => s.length > 0)
+      : [];
+
+    const newNote = {
+      id: Math.random().toString(36).substr(2, 9),
+      author: noteAuthor.trim().startsWith("@") ? noteAuthor.trim() : `@${noteAuthor.trim()}`,
+      content: noteContent.trim(),
+      timestamp: "Just now",
+      sources: sourcesArray,
+      upvotes: 1,
+    };
+
+    setLocalNotes((prev) => [newNote, ...prev]);
+    setNoteContent("");
+    setNoteSources("");
+    setIsModalOpen(false);
+  };
+
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -96,9 +147,7 @@ export default function AnalysisScreen() {
     );
   }
 
-  // Fallback to local simulated report if request fails or is loading is complete but returned no data
-  const analysis = dynamicAnalysis || getAnalysis(article.id);
-  const saved = isArticleSaved(article.id);
+
 
   const headerBg = scrollY.interpolate({
     inputRange: [0, 80],
@@ -508,16 +557,16 @@ export default function AnalysisScreen() {
               <Feather name="message-square" size={15} color={colors.foreground} />
               <Text style={[styles.sectionBoxTitle, { color: colors.foreground }]}>Community Notes</Text>
               <View style={[styles.noteCount, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.noteCountText, { color: colors.mutedForeground }]}>{analysis.communityNotes.length}</Text>
+                <Text style={[styles.noteCountText, { color: colors.mutedForeground }]}>{localNotes.length}</Text>
               </View>
             </View>
 
-            {analysis.communityNotes.map((note) => (
+            {localNotes.map((note) => (
               <View key={note.id} style={[styles.noteCard, { borderColor: colors.border, backgroundColor: colors.background }]}>
                 <View style={styles.noteHeader}>
                   <View style={[styles.noteAvatar, { backgroundColor: colors.primary }]}>
                     <Text style={[styles.noteAvatarText, { color: colors.primaryForeground }]}>
-                      {note.author.charAt(0)}
+                      {note.author ? note.author.charAt(0) : "U"}
                     </Text>
                   </View>
                   <View style={styles.noteHeaderRight}>
@@ -526,7 +575,7 @@ export default function AnalysisScreen() {
                   </View>
                 </View>
                 <Text style={[styles.noteContent, { color: colors.foreground }]}>{note.content}</Text>
-                {note.sources && (
+                {note.sources && note.sources.length > 0 && (
                   <View style={styles.noteSources}>
                     <Feather name="link" size={11} color={colors.mutedForeground} />
                     <Text style={[styles.noteSourcesText, { color: colors.mutedForeground }]}>
@@ -541,13 +590,84 @@ export default function AnalysisScreen() {
               </View>
             ))}
 
-            <TouchableOpacity style={[styles.addNoteBtn, { borderColor: colors.border }]}>
+            <TouchableOpacity 
+              style={[styles.addNoteBtn, { borderColor: colors.border }]}
+              onPress={() => setIsModalOpen(true)}
+            >
               <Feather name="plus" size={15} color={colors.mutedForeground} />
               <Text style={[styles.addNoteBtnText, { color: colors.mutedForeground }]}>Add Community Note</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Animated.ScrollView>
+
+      <Modal
+        visible={isModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBg}
+            activeOpacity={1}
+            onPress={() => setIsModalOpen(false)}
+          />
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Add Community Note</Text>
+              <TouchableOpacity onPress={() => setIsModalOpen(false)}>
+                <Feather name="x" size={20} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Your Username / Handle</Text>
+              <TextInput
+                style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                value={noteAuthor}
+                onChangeText={setNoteAuthor}
+                placeholder="e.g. @truthseeker"
+                placeholderTextColor={colors.mutedForeground}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Factual Correction / Context</Text>
+              <TextInput
+                style={[styles.textInput, styles.textArea, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                value={noteContent}
+                onChangeText={setNoteContent}
+                placeholder="Provide objective context with facts. Avoid opinions."
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Sources (comma separated URLs)</Text>
+              <TextInput
+                style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                value={noteSources}
+                onChangeText={setNoteSources}
+                placeholder="https://example.com/fact, https://reuters.com/info"
+                placeholderTextColor={colors.mutedForeground}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitBtn, { backgroundColor: colors.accent }]}
+              onPress={handleAddNoteSubmit}
+            >
+              <Text style={[styles.submitBtnText, { color: colors.accentForeground }]}>Submit Note</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -715,4 +835,62 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addNoteBtnText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    padding: 20,
+    paddingBottom: 40,
+    gap: 16,
+    maxHeight: "85%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  textArea: {
+    height: 90,
+    textAlignVertical: "top",
+  },
+  submitBtn: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  submitBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
 });
