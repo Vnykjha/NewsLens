@@ -23,6 +23,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
         <Label>Saved</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="ask">
+        <Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} />
+        <Label>Ask AI</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="community">
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
         <Label>Community</Label>
@@ -107,6 +111,18 @@ function ClassicTabLayout() {
               <SymbolView name="bookmark.fill" tintColor={color} size={22} />
             ) : (
               <Feather name="bookmark" size={20} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="ask"
+        options={{
+          title: "Ask AI",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="bubble.left.and.bubble.right.fill" tintColor={color} size={22} />
+            ) : (
+              <Feather name="message-square" size={20} color={color} />
             ),
         }}
       />
