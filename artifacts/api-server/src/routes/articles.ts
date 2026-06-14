@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { GetArticlesResponse, GetArticleAnalysisResponse, AnalyzeArticleResponse, RunOcrResponse } from "@workspace/api-zod";
 import { getNewsArticles, addArticleToCache } from "../services/newsService";
-import { generateAnalysis, extractTextFromImage, generateMultiModelAnalysis, fetchTextFromUrl } from "../services/openRouterService";
+import { generateAnalysis, extractTextFromImage, generateMultiModelAnalysis, fetchTextFromUrl, generateChatResponse } from "../services/openRouterService";
 
 const router: IRouter = Router();
 
@@ -80,6 +80,21 @@ router.post("/articles/analyze", async (req, res, next) => {
 
     const data = AnalyzeArticleResponse.parse(result);
     res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/chat", async (req, res, next) => {
+  try {
+    const { messages, articleId } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      res.status(400).json({ error: "Missing or invalid 'messages' parameter." });
+      return;
+    }
+
+    const result = await generateChatResponse(messages, articleId);
+    res.json(result);
   } catch (error) {
     next(error);
   }
