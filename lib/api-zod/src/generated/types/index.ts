@@ -6,6 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './analysisReport';
 export * from './article';
 export * from './articlesResponse';
+export * from './citation';
+export * from './communityNote';
 export * from './healthStatus';
+export * from './mediaAuthenticity';
+export * from './mediaAuthenticityAiGeneratedLikelihood';
+export * from './perspective';
+export * from './stakeholder';
+export * from './timelineEvent';

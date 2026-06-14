@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
   Platform,
@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CredibilityMeter } from "@/components/CredibilityMeter";
@@ -17,7 +18,7 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { MOCK_ARTICLES } from "@/lib/mockData";
 import { getAnalysis } from "@/lib/mockAnalysis";
-import { useGetArticles } from "@workspace/api-client-react";
+import { useGetArticles, useGetArticleAnalysis } from "@workspace/api-client-react";
 
 const PERSPECTIVES_TABS = ["Supporting", "Alternative", "Contradictory"] as const;
 
@@ -34,11 +35,70 @@ export default function AnalysisScreen() {
   const activeArticles = articles && articles.length > 0 ? articles : MOCK_ARTICLES;
 
   const article = activeArticles.find((a) => a.id === id) ?? MOCK_ARTICLES.find((a) => a.id === id) ?? MOCK_ARTICLES[0];
-  const analysis = getAnalysis(id ?? "1");
-  const saved = isArticleSaved(article.id);
+  
+  // Load analysis dynamically via React Query
+  const { data: dynamicAnalysis, isLoading, error } = useGetArticleAnalysis(article.id);
+
+  const [loadingText, setLoadingText] = useState("Auditing credibility score...");
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const phrases = [
+      "Auditing credibility score...",
+      "Extracting key factual claims...",
+      "Analyzing potential bias indicators...",
+      "Cross-verifying with other news sources...",
+      "Synthesizing future implications..."
+    ];
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = (idx + 1) % phrases.length;
+      setLoadingText(phrases[idx]);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 34;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.floatingHeader,
+            {
+              paddingTop: topPad,
+              backgroundColor: colors.background,
+              borderBottomColor: colors.border,
+              borderBottomWidth: 1,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.back()}
+          >
+            <Feather name="arrow-left" size={18} color={colors.foreground} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 30 }}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.foreground, marginTop: 24, textAlign: "center" }}>
+            {loadingText}
+          </Text>
+          <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: 8, textAlign: "center" }}>
+            This may take a few seconds as we perform a live audit via OpenRouter.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Fallback to local simulated report if request fails or is loading is complete but returned no data
+  const analysis = dynamicAnalysis || getAnalysis(article.id);
+  const saved = isArticleSaved(article.id);
 
   const headerBg = scrollY.interpolate({
     inputRange: [0, 80],
@@ -57,6 +117,7 @@ export default function AnalysisScreen() {
       : perspTab === "Alternative"
       ? analysis.alternativePerspectives
       : analysis.contradictoryCoverage;
+
 
   const credColor =
     analysis.credibilityScore >= 80

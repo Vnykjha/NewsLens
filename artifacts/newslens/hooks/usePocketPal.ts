@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 import { MOCK_ARTICLES, Citation } from "@/lib/mockData";
 import { getAnalysis } from "@/lib/mockAnalysis";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 const DEFAULT_URL = "http://localhost:5001/v1";
 const STORAGE_KEY = "newslens_pocketpal_url";
@@ -13,6 +15,14 @@ export interface Message {
   timestamp: Date;
   citations?: Citation[];
 }
+
+// Dynamically resolve the NewsLens API server URL
+const getNewsApiBaseUrl = () => {
+  if (Platform.OS === "web") return "http://localhost:5000";
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  const localhost = debuggerHost?.split(":")[0];
+  return localhost ? `http://${localhost}:5000` : "http://localhost:5000";
+};
 
 export function usePocketPal() {
   const [apiUrl, setApiUrl] = useState<string>(DEFAULT_URL);
@@ -38,8 +48,6 @@ export function usePocketPal() {
   const checkConnection = useCallback(async (urlToCheck: string) => {
     setIsChecking(true);
     try {
-      // We check if the endpoint responds. Usually, /models or just fetching the root is standard.
-      // We set a short timeout of 2 seconds so the UI remains highly responsive.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -53,7 +61,6 @@ export function usePocketPal() {
       clearTimeout(timeoutId);
 
       if (response.ok || response.status === 401) {
-        // 401 means endpoint exists but needs auth, which still means server is running
         setIsConnected(true);
         return true;
       }
@@ -84,12 +91,11 @@ export function usePocketPal() {
     checkConnection(apiUrl);
   }, [apiUrl, checkConnection]);
 
-  // Generate simulated editorial response
-  const generateSimulatedResponse = useCallback((query: string, articleId?: string): { content: string; citations: Citation[] } => {
+  // Generate simulated editorial response using loaded analysis
+  const generateSimulatedResponse = useCallback((query: string, articleId?: string, loadedAnalysis?: any): { content: string; citations: Citation[] } => {
     const normalizedQuery = query.toLowerCase();
 
     if (!articleId) {
-      // General overview query when no article is pinned
       return {
         content: `As an editor, I can provide general intelligence on today's briefing. We are tracking several key stories:\n\n1. **Federal Reserve Rate Cuts** [1]: Citing May CPI inflation at 2.3%, the Fed signals rate cuts are back on the table.\n2. **AI Regulation Act** [2]: Bipartisan Senate bill S.2847 passed the Commerce Committee, targeting frontier models (10^26 FLOPs) with pre-deployment safety evaluations.\n3. **Mpox Global Emergency** [3]: The WHO activated its highest alert level after a novel strain spread across 23 countries.\n\nSelect a specific article above to explore detailed evidence, timelines, and conflicting perspectives.`,
         citations: [
@@ -100,9 +106,8 @@ export function usePocketPal() {
       };
     }
 
-    const article = MOCK_ARTICLES.find((a) => a.id === articleId);
-    const analysis = getAnalysis(articleId);
-    if (!article || !analysis) {
+    const analysis = loadedAnalysis || getAnalysis(articleId);
+    if (!analysis) {
       return {
         content: `I apologize, but I do not have sufficient editorial records for this article. Please select another report from today's briefing.`,
         citations: []
@@ -110,6 +115,10 @@ export function usePocketPal() {
     }
 
     const citations = analysis.citations || [];
+    const headline = analysis.headline || "Selected Article";
+    const publisher = analysis.publisher || "Publisher";
+    const url = analysis.citations?.[0]?.url || "#";
+    const summary = analysis.tldr || "";
 
     // 1. Context / Background
     if (
@@ -118,19 +127,19 @@ export function usePocketPal() {
       normalizedQuery.includes("history") ||
       normalizedQuery.includes("origin")
     ) {
-      let response = `### Editorial Context: ${article.headline}\n\n`;
+      let response = `### Editorial Context: ${headline}\n\n`;
       response += `${analysis.context}\n\n`;
       if (analysis.timeline && analysis.timeline.length > 0) {
         response += `#### Historical Timeline Summary:\n`;
-        analysis.timeline.slice(0, 4).forEach((evt) => {
+        analysis.timeline.slice(0, 4).forEach((evt: any) => {
           response += `- **${evt.date}**: ${evt.event}\n`;
         });
       }
-      response += `\n*Source Reference: This briefing is grounded in primary records, including direct reports from ${article.publisher} [1].*`;
+      response += `\n*Source Reference: This briefing is grounded in primary records, including direct reports from ${publisher} [1].*`;
       return {
         content: response,
         citations: [
-          { id: "art-cit", title: article.headline, publisher: article.publisher, url: article.url, excerpt: article.summary },
+          { id: "art-cit", title: headline, publisher: publisher, url: url, excerpt: summary },
           ...citations
         ]
       };
@@ -146,7 +155,7 @@ export function usePocketPal() {
     ) {
       let response = `### Key Verified Claims & Evidence\n\n`;
       response += `Our editorial desk has compiled and cross-verified the following key claims from the reporting:\n\n`;
-      analysis.keyClaims.forEach((claim, idx) => {
+      analysis.keyClaims.forEach((claim: string, idx: number) => {
         const citIdx = idx % (citations.length || 1);
         const citText = citations.length > 0 ? ` [${citIdx + 1}]` : "";
         response += `- **${claim}**${citText}\n`;
@@ -173,7 +182,7 @@ export function usePocketPal() {
       
       if (analysis.potentialBias && analysis.potentialBias.length > 0) {
         response += `#### Potential Bias Indicators:\n`;
-        analysis.potentialBias.forEach((bias) => {
+        analysis.potentialBias.forEach((bias: string) => {
           response += `- ${bias}\n`;
         });
       } else {
@@ -181,9 +190,9 @@ export function usePocketPal() {
       }
       
       response += `\n#### Media Authenticity Checklist:\n`;
-      response += `- **AI Likelihood:** \`${analysis.mediaAuthenticity.aiGeneratedLikelihood}\`\n`;
-      response += `- **EXIF Metadata Available:** \`${analysis.mediaAuthenticity.metadataAvailable ? "Yes" : "No"}\`\n`;
-      if (analysis.mediaAuthenticity.authenticityIndicators.length > 0) {
+      response += `- **AI Likelihood:** \`${analysis.mediaAuthenticity?.aiGeneratedLikelihood || "Low"}\`\n`;
+      response += `- **EXIF Metadata Available:** \`${analysis.mediaAuthenticity?.metadataAvailable ? "Yes" : "No"}\`\n`;
+      if (analysis.mediaAuthenticity?.authenticityIndicators?.length > 0) {
         response += `- **Indicators:** ${analysis.mediaAuthenticity.authenticityIndicators.join("; ")}\n`;
       }
       return { content: response, citations };
@@ -204,7 +213,7 @@ export function usePocketPal() {
 
       if (analysis.supportingCoverage && analysis.supportingCoverage.length > 0) {
         response += `#### Supporting / Consensus View:\n`;
-        analysis.supportingCoverage.forEach((p) => {
+        analysis.supportingCoverage.forEach((p: any) => {
           response += `- **${p.publisher}**: *"${p.headline}"* — (Score: ${p.credibilityScore}/100)\n  ${p.summary}\n`;
         });
         response += `\n`;
@@ -212,7 +221,7 @@ export function usePocketPal() {
 
       if (analysis.alternativePerspectives && analysis.alternativePerspectives.length > 0) {
         response += `#### Alternative Interpretations:\n`;
-        analysis.alternativePerspectives.forEach((p) => {
+        analysis.alternativePerspectives.forEach((p: any) => {
           response += `- **${p.publisher}**: *"${p.headline}"* — (Score: ${p.credibilityScore}/100)\n  ${p.summary}\n`;
         });
         response += `\n`;
@@ -220,7 +229,7 @@ export function usePocketPal() {
 
       if (analysis.contradictoryCoverage && analysis.contradictoryCoverage.length > 0) {
         response += `#### Dissenting / Contradictory Arguments:\n`;
-        analysis.contradictoryCoverage.forEach((p) => {
+        analysis.contradictoryCoverage.forEach((p: any) => {
           response += `- **${p.publisher}**: *"${p.headline}"* — (Score: ${p.credibilityScore}/100)\n  ${p.summary}\n`;
         });
       } else {
@@ -238,7 +247,7 @@ export function usePocketPal() {
     ) {
       let response = `### Stakeholder Analysis\n\n`;
       response += `The primary entities impacted by these developments and their underlying interests are:\n\n`;
-      analysis.stakeholders.forEach((s) => {
+      analysis.stakeholders.forEach((s: any) => {
         response += `- **${s.name}** (${s.role})\n`;
       });
       return { content: response, citations: [] };
@@ -255,11 +264,11 @@ export function usePocketPal() {
       let response = `### Risk and Opportunity Ledger\n\n`;
       response += `Our assessment of downstream risks and opportunities reveals:\n\n`;
       response += `#### Core Risks:\n`;
-      analysis.risks.forEach((r) => {
+      analysis.risks.forEach((r: string) => {
         response += `- ${r}\n`;
       });
       response += `\n#### Emerging Opportunities:\n`;
-      analysis.opportunities.forEach((o) => {
+      analysis.opportunities.forEach((o: string) => {
         response += `- ${o}\n`;
       });
       return { content: response, citations: [] };
@@ -288,7 +297,7 @@ export function usePocketPal() {
       normalizedQuery.includes("event")
     ) {
       let response = `### Chronological Timeline\n\n`;
-      analysis.timeline.forEach((evt) => {
+      analysis.timeline.forEach((evt: any) => {
         response += `- **${evt.date}**: ${evt.event}\n`;
       });
       return { content: response, citations: [] };
@@ -304,7 +313,7 @@ export function usePocketPal() {
       let response = `### Community Perspectives\n\n`;
       if (analysis.communityNotes && analysis.communityNotes.length > 0) {
         response += `Readers have contributed the following context notes to this story:\n\n`;
-        analysis.communityNotes.forEach((note) => {
+        analysis.communityNotes.forEach((note: any) => {
           response += `> **${note.author}** (*${note.timestamp}* — ${note.upvotes} helpful ratings):\n> ${note.content}\n\n`;
         });
       } else {
@@ -314,10 +323,10 @@ export function usePocketPal() {
     }
 
     // 10. General / Fallback
-    let response = `### Editorial Briefing: ${article.headline}\n\n`;
+    let response = `### Editorial Briefing: ${headline}\n\n`;
     response += `${analysis.tldr}\n\n`;
     response += `#### Verified Key Claims:\n`;
-    analysis.keyClaims.slice(0, 3).forEach((claim, idx) => {
+    analysis.keyClaims.slice(0, 3).forEach((claim: string, idx: number) => {
       const citIdx = idx % (citations.length || 1);
       const citText = citations.length > 0 ? ` [${citIdx + 1}]` : "";
       response += `- ${claim}${citText}\n`;
@@ -340,11 +349,28 @@ export function usePocketPal() {
     ): Promise<{ content: string; citations: Citation[] }> => {
       const lastUserMessage = messages[messages.length - 1]?.content || "";
 
+      // Load article analysis context dynamically from the API server
+      let loadedAnalysis: any = null;
+      if (articleId) {
+        try {
+          const newsUrl = getNewsApiBaseUrl();
+          const detailRes = await fetch(`${newsUrl}/api/articles/${articleId}/analysis`, {
+            signal: AbortSignal.timeout(8000), // 8-second timeout
+          });
+          if (detailRes.ok) {
+            loadedAnalysis = await detailRes.json();
+          }
+        } catch (err) {
+          console.warn("Failed to fetch live analysis for chatbot, falling back to mock:", err);
+        }
+        if (!loadedAnalysis) {
+          loadedAnalysis = getAnalysis(articleId);
+        }
+      }
+
       if (!isConnected) {
-        // If we are marked as disconnected, instantly return simulated Qwen model response
-        // We delay by 1 second to make it feel natural and give a sense of thinking
         await new Promise((resolve) => setTimeout(resolve, 1200));
-        return generateSimulatedResponse(lastUserMessage, articleId);
+        return generateSimulatedResponse(lastUserMessage, articleId, loadedAnalysis);
       }
 
       try {
@@ -352,28 +378,25 @@ export function usePocketPal() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000); // 6-second timeout for local requests
 
-        // Inject the article context into the system prompt to guide the local Qwen model
         let systemPrompt =
           "You are an intelligent, erudite newspaper editor answering user questions. Answer concisely, focusing on evidence. ";
         
-        if (articleId) {
-          const article = MOCK_ARTICLES.find((a) => a.id === articleId);
-          const analysis = getAnalysis(articleId);
-          if (article && analysis) {
-            systemPrompt += `You are answering questions about the article titled "${article.headline}" published by ${article.publisher}. `;
-            systemPrompt += `Here is the editorial intelligence report for the article: `;
-            systemPrompt += `TLDR: ${analysis.tldr}. `;
-            systemPrompt += `Context: ${analysis.context}. `;
-            systemPrompt += `Claims: ${analysis.keyClaims.join("; ")}. `;
-            systemPrompt += `Bias Indicators: ${analysis.potentialBias.join("; ")}. `;
-            systemPrompt += `Credibility Score: ${analysis.credibilityScore}. `;
-            systemPrompt += `Implications: ${analysis.futureImplications}. `;
-            systemPrompt += `Use this factual context to construct your response. If facts are requested, cite them by referencing [1], [2] corresponding to these sources: `;
-            if (analysis.citations) {
-              analysis.citations.forEach((c, idx) => {
-                systemPrompt += `[${idx + 1}] Source Title: "${c.title}" by ${c.publisher}. `;
-              });
-            }
+        if (loadedAnalysis) {
+          const headline = loadedAnalysis.headline || "Selected Article";
+          const publisher = loadedAnalysis.publisher || "Publisher";
+          systemPrompt += `You are answering questions about the article titled "${headline}" published by ${publisher}. `;
+          systemPrompt += `Here is the editorial intelligence report for the article: `;
+          systemPrompt += `TLDR: ${loadedAnalysis.tldr}. `;
+          systemPrompt += `Context: ${loadedAnalysis.context}. `;
+          systemPrompt += `Claims: ${loadedAnalysis.keyClaims?.join("; ") || ""}. `;
+          systemPrompt += `Bias Indicators: ${loadedAnalysis.potentialBias?.join("; ") || ""}. `;
+          systemPrompt += `Credibility Score: ${loadedAnalysis.credibilityScore}. `;
+          systemPrompt += `Implications: ${loadedAnalysis.futureImplications}. `;
+          systemPrompt += `Use this factual context to construct your response. If facts are requested, cite them by referencing [1], [2] corresponding to these sources: `;
+          if (loadedAnalysis.citations) {
+            loadedAnalysis.citations.forEach((c: any, idx: number) => {
+              systemPrompt += `[${idx + 1}] Source Title: "${c.title}" by ${c.publisher}. `;
+            });
           }
         }
 
@@ -403,17 +426,13 @@ export function usePocketPal() {
 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || "";
-        
-        // Grab citations from article context to present to user
-        const analysis = articleId ? getAnalysis(articleId) : null;
-        const citations = analysis ? (analysis.citations || []) : [];
+        const citations = loadedAnalysis ? (loadedAnalysis.citations || []) : [];
 
         return { content, citations };
       } catch (err) {
         console.warn("PocketPal API request failed, falling back to simulated engine:", err);
-        // Fallback to local simulated Qwen model
         await new Promise((resolve) => setTimeout(resolve, 1200));
-        return generateSimulatedResponse(lastUserMessage, articleId);
+        return generateSimulatedResponse(lastUserMessage, articleId, loadedAnalysis);
       }
     },
     [apiUrl, isConnected, generateSimulatedResponse]
