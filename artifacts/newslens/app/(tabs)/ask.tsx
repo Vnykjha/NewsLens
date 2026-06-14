@@ -28,9 +28,11 @@ export default function AskScreen() {
   const { readingHistory } = useApp();
   const {
     apiUrl,
+    modelName,
     isConnected,
     isChecking,
     updateApiUrl,
+    updateModelName,
     checkConnection,
     sendMessage,
   } = usePocketPal();
@@ -78,15 +80,17 @@ export default function AskScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsUrl, setSettingsUrl] = useState(apiUrl);
+  const [settingsModel, setSettingsModel] = useState(modelName);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Sync settings URL state when hook loaded
+  // Sync settings state when hook loaded
   useEffect(() => {
     setSettingsUrl(apiUrl);
-  }, [apiUrl]);
+    setSettingsModel(modelName);
+  }, [apiUrl, modelName]);
 
   // Suggested questions based on selected article
   const getSuggestions = () => {
@@ -193,6 +197,7 @@ export default function AskScreen() {
 
   const handleSaveSettings = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await updateModelName(settingsModel);
     const success = await updateApiUrl(settingsUrl);
     if (success) {
       setShowSettings(false);
@@ -422,14 +427,34 @@ export default function AskScreen() {
               <Feather name="x" size={18} color={colors.mutedForeground} />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.settingsDesc, { color: colors.mutedForeground }]}>
-            Specify the network URL of your PocketPal server (e.g., http://localhost:5001/v1).
+          <Text style={[styles.settingsDesc, { color: colors.mutedForeground, marginBottom: 2 }]}>
+            Server Endpoint URL:
+          </Text>
+          <TextInput
+            value={settingsUrl}
+            onChangeText={setSettingsUrl}
+            placeholder="http://localhost:5001/v1"
+            placeholderTextColor={colors.mutedForeground}
+            style={[
+              styles.settingsInputFull,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.foreground,
+                marginBottom: 8,
+              },
+            ]}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={[styles.settingsDesc, { color: colors.mutedForeground, marginBottom: 2 }]}>
+            Model Name Parameter:
           </Text>
           <View style={styles.settingsInputRow}>
             <TextInput
-              value={settingsUrl}
-              onChangeText={setSettingsUrl}
-              placeholder="http://localhost:5001/v1"
+              value={settingsModel}
+              onChangeText={setSettingsModel}
+              placeholder="qwen"
               placeholderTextColor={colors.mutedForeground}
               style={[
                 styles.settingsInput,
@@ -746,6 +771,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontSize: 13,
     fontFamily: "Inter_400Regular",
+  },
+  settingsInputFull: {
+    height: 38,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    width: "100%",
   },
   settingsSaveBtn: {
     paddingHorizontal: 16,

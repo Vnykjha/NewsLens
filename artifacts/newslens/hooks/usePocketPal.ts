@@ -8,6 +8,9 @@ import { Platform } from "react-native";
 const DEFAULT_URL = "http://localhost:5001/v1";
 const STORAGE_KEY = "newslens_pocketpal_url";
 
+const DEFAULT_MODEL = "qwen";
+const MODEL_STORAGE_KEY = "newslens_pocketpal_model";
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -26,22 +29,27 @@ const getNewsApiBaseUrl = () => {
 
 export function usePocketPal() {
   const [apiUrl, setApiUrl] = useState<string>(DEFAULT_URL);
+  const [modelName, setModelName] = useState<string>(DEFAULT_MODEL);
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // null means checking
   const [isChecking, setIsChecking] = useState<boolean>(false);
 
-  // Load URL from storage
+  // Load URL and model name from storage
   useEffect(() => {
-    const loadUrl = async () => {
+    const loadConfig = async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          setApiUrl(stored);
+        const storedUrl = await AsyncStorage.getItem(STORAGE_KEY);
+        if (storedUrl) {
+          setApiUrl(storedUrl);
+        }
+        const storedModel = await AsyncStorage.getItem(MODEL_STORAGE_KEY);
+        if (storedModel) {
+          setModelName(storedModel);
         }
       } catch (err) {
-        console.error("Failed to load PocketPal URL:", err);
+        console.error("Failed to load PocketPal config:", err);
       }
     };
-    loadUrl();
+    loadConfig();
   }, []);
 
   // Check connectivity to the specified endpoint
@@ -85,6 +93,17 @@ export function usePocketPal() {
     }
     return checkConnection(cleanedUrl);
   }, [checkConnection]);
+
+  // Update model name
+  const updateModelName = useCallback(async (newModel: string) => {
+    const cleanedModel = newModel.trim();
+    setModelName(cleanedModel);
+    try {
+      await AsyncStorage.setItem(MODEL_STORAGE_KEY, cleanedModel);
+    } catch (err) {
+      console.error("Failed to save PocketPal model name:", err);
+    }
+  }, []);
 
   // Initial connection check
   useEffect(() => {
@@ -411,7 +430,7 @@ export function usePocketPal() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "qwen",
+            model: modelName,
             messages: chatMessages,
             temperature: 0.2,
           }),
@@ -435,14 +454,16 @@ export function usePocketPal() {
         return generateSimulatedResponse(lastUserMessage, articleId, loadedAnalysis);
       }
     },
-    [apiUrl, isConnected, generateSimulatedResponse]
+    [apiUrl, modelName, isConnected, generateSimulatedResponse]
   );
 
   return {
     apiUrl,
+    modelName,
     isConnected,
     isChecking,
     updateApiUrl,
+    updateModelName,
     checkConnection,
     sendMessage,
   };

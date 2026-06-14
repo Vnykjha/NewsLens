@@ -26,6 +26,17 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
   const { isArticleSaved, saveArticle, unsaveArticle, folders, addToHistory } = useApp();
   const saved = isArticleSaved(article.id);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [vote, setVote] = useState<"up" | "down" | null>(null);
+
+  const handleUpvote = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setVote((prev) => (prev === "up" ? null : "up"));
+  };
+
+  const handleDownvote = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setVote((prev) => (prev === "down" ? null : "down"));
+  };
 
   const handleSave = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -116,10 +127,22 @@ export function ArticleCard({ article, compact = false }: ArticleCardProps) {
             <TouchableOpacity onPress={handleSave} style={styles.iconBtn} hitSlop={8}>
               <Feather name={saved ? "bookmark" : "bookmark"} size={18} color={saved ? colors.accent : colors.mutedForeground} solid={saved} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleAnalyze} style={[styles.analyzeBtn, { backgroundColor: colors.primary }]} activeOpacity={0.8}>
-              <Feather name="zap" size={13} color={colors.primaryForeground} />
-              <Text style={[styles.analyzeBtnText, { color: colors.primaryForeground }]}>Analyze</Text>
-            </TouchableOpacity>
+            <View style={styles.voteContainer}>
+              <TouchableOpacity onPress={handleUpvote} style={styles.voteBtn} hitSlop={6}>
+                <Feather
+                  name="thumbs-up"
+                  size={16}
+                  color={vote === "up" ? colors.success : colors.mutedForeground}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDownvote} style={styles.voteBtn} hitSlop={6}>
+                <Feather
+                  name="thumbs-down"
+                  size={16}
+                  color={vote === "down" ? colors.destructive : colors.mutedForeground}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -285,17 +308,14 @@ const styles = StyleSheet.create({
   iconBtn: {
     padding: 4,
   },
-  analyzeBtn: {
+  voteContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: 12,
+    marginRight: 4,
   },
-  analyzeBtnText: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
+  voteBtn: {
+    padding: 6,
   },
   overlay: {
     flex: 1,
