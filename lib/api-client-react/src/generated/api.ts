@@ -6,23 +6,31 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   AnalysisReport,
+  AnalyzeArticleRequest,
+  AnalyzeArticleResult,
   ArticlesResponse,
-  HealthStatus
+  HealthStatus,
+  OcrRequest,
+  OcrResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -188,6 +196,150 @@ export function useGetArticles<TData = Awaited<ReturnType<typeof getArticles>>, 
 
 
 
+
+export const getAnalyzeArticleUrl = () => {
+
+
+
+
+  return `/api/articles/analyze`
+}
+
+/**
+ * Runs credibility audit via DeepSeek and summarization via Minimax.
+ * @summary Analyze a user-submitted article
+ */
+export const analyzeArticle = async (analyzeArticleRequest: AnalyzeArticleRequest, options?: RequestInit): Promise<AnalyzeArticleResult> => {
+
+  return customFetch<AnalyzeArticleResult>(getAnalyzeArticleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      analyzeArticleRequest,)
+  }
+);}
+
+
+
+
+export const getAnalyzeArticleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeArticle>>, TError,{data: BodyType<AnalyzeArticleRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeArticle>>, TError,{data: BodyType<AnalyzeArticleRequest>}, TContext> => {
+
+const mutationKey = ['analyzeArticle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeArticle>>, {data: BodyType<AnalyzeArticleRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeArticle(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeArticleMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeArticle>>>
+    export type AnalyzeArticleMutationBody = BodyType<AnalyzeArticleRequest>
+    export type AnalyzeArticleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Analyze a user-submitted article
+ */
+export const useAnalyzeArticle = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeArticle>>, TError,{data: BodyType<AnalyzeArticleRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeArticle>>,
+        TError,
+        {data: BodyType<AnalyzeArticleRequest>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeArticleMutationOptions(options));
+    }
+
+export const getRunOcrUrl = () => {
+
+
+
+
+  return `/api/ocr`
+}
+
+/**
+ * Extracts text from a base64 encoded screenshot image.
+ * @summary Run OCR on a screenshot
+ */
+export const runOcr = async (ocrRequest: OcrRequest, options?: RequestInit): Promise<OcrResponse> => {
+
+  return customFetch<OcrResponse>(getRunOcrUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      ocrRequest,)
+  }
+);}
+
+
+
+
+export const getRunOcrMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runOcr>>, TError,{data: BodyType<OcrRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runOcr>>, TError,{data: BodyType<OcrRequest>}, TContext> => {
+
+const mutationKey = ['runOcr'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runOcr>>, {data: BodyType<OcrRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runOcr(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunOcrMutationResult = NonNullable<Awaited<ReturnType<typeof runOcr>>>
+    export type RunOcrMutationBody = BodyType<OcrRequest>
+    export type RunOcrMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Run OCR on a screenshot
+ */
+export const useRunOcr = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runOcr>>, TError,{data: BodyType<OcrRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runOcr>>,
+        TError,
+        {data: BodyType<OcrRequest>},
+        TContext
+      > => {
+      return useMutation(getRunOcrMutationOptions(options));
+    }
 
 export const getGetArticleAnalysisUrl = (id: string,) => {
 

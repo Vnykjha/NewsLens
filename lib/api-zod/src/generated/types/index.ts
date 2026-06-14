@@ -7,6 +7,8 @@
  */
 
 export * from './analysisReport';
+export * from './analyzeArticleRequest';
+export * from './analyzeArticleResult';
 export * from './article';
 export * from './articlesResponse';
 export * from './citation';
@@ -14,6 +16,8 @@ export * from './communityNote';
 export * from './healthStatus';
 export * from './mediaAuthenticity';
 export * from './mediaAuthenticityAiGeneratedLikelihood';
+export * from './ocrRequest';
+export * from './ocrResponse';
 export * from './perspective';
 export * from './stakeholder';
 export * from './timelineEvent';

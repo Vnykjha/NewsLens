@@ -40,6 +40,121 @@ export const GetArticlesResponse = zod.array(GetArticlesResponseItem)
 
 
 /**
+ * Runs credibility audit via DeepSeek and summarization via Minimax.
+ * @summary Analyze a user-submitted article
+ */
+export const AnalyzeArticleBody = zod.object({
+  "url": zod.string().optional(),
+  "text": zod.string().optional()
+})
+
+export const AnalyzeArticleResponse = zod.object({
+  "article": zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "publishedAt": zod.string(),
+  "readingTime": zod.number(),
+  "category": zod.string(),
+  "summary": zod.string(),
+  "url": zod.string(),
+  "credibilityScore": zod.number(),
+  "imageColor": zod.string(),
+  "imageUrl": zod.string().optional(),
+  "isBreaking": zod.boolean().optional()
+}),
+  "analysis": zod.object({
+  "articleId": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number(),
+  "sourceReputation": zod.string(),
+  "evidenceStrength": zod.string(),
+  "crossVerification": zod.string(),
+  "potentialBias": zod.array(zod.string()),
+  "tldr": zod.string(),
+  "context": zod.string(),
+  "keyClaims": zod.array(zod.string()),
+  "stakeholders": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string()
+})),
+  "risks": zod.array(zod.string()),
+  "opportunities": zod.array(zod.string()),
+  "futureImplications": zod.string(),
+  "citations": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "publisher": zod.string(),
+  "url": zod.string(),
+  "excerpt": zod.string()
+})),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "event": zod.string()
+})),
+  "communityNotes": zod.array(zod.object({
+  "id": zod.string(),
+  "author": zod.string(),
+  "content": zod.string(),
+  "upvotes": zod.number(),
+  "timestamp": zod.string(),
+  "sources": zod.array(zod.string()).optional()
+})),
+  "supportingCoverage": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "alternativePerspectives": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "contradictoryCoverage": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "mediaAuthenticity": zod.object({
+  "aiGeneratedLikelihood": zod.enum(['Low', 'Medium', 'High']),
+  "metadataAvailable": zod.boolean(),
+  "authenticityIndicators": zod.array(zod.string()),
+  "warnings": zod.array(zod.string())
+})
+})
+})
+
+
+/**
+ * Extracts text from a base64 encoded screenshot image.
+ * @summary Run OCR on a screenshot
+ */
+export const RunOcrBody = zod.object({
+  "image": zod.string()
+})
+
+export const RunOcrResponse = zod.object({
+  "text": zod.string()
+})
+
+
+/**
  * Returns LLM-generated comprehensive analysis of the news article
  * @summary Get article analysis
  */

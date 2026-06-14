@@ -39,6 +39,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ArticlesResponse"
+  /articles/analyze:
+    post:
+      operationId: analyzeArticle
+      tags: [articles]
+      summary: Analyze a user-submitted article
+      description: Runs credibility audit via DeepSeek and summarization via Minimax.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeArticleRequest"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeArticleResult"
+  /ocr:
+    post:
+      operationId: runOcr
+      tags: [articles]
+      summary: Run OCR on a screenshot
+      description: Extracts text from a base64 encoded screenshot image.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OcrRequest"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcrResponse"
   /articles/{id}/analysis:
     get:
       operationId: getArticleAnalysis
@@ -293,3 +331,30 @@ components:
         - alternativePerspectives
         - contradictoryCoverage
         - mediaAuthenticity
+    AnalyzeArticleRequest:
+      type: object
+      properties:
+        url:
+          type: string
+        text:
+          type: string
+    AnalyzeArticleResult:
+      type: object
+      properties:
+        article:
+          $ref: "#/components/schemas/Article"
+        analysis:
+          $ref: "#/components/schemas/AnalysisReport"
+      required: [article, analysis]
+    OcrRequest:
+      type: object
+      properties:
+        image:
+          type: string
+      required: [image]
+    OcrResponse:
+      type: object
+      properties:
+        text:
+          type: string
+      required: [text]
