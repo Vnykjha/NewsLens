@@ -20,6 +20,7 @@ import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { usePocketPal, Message } from "@/hooks/usePocketPal";
 import { MOCK_ARTICLES, Article, Citation } from "@/lib/mockData";
+import { useGetArticles } from "@workspace/api-client-react";
 
 export default function AskScreen() {
   const colors = useColors();
@@ -33,6 +34,34 @@ export default function AskScreen() {
     checkConnection,
     sendMessage,
   } = usePocketPal();
+
+  const { data: articles = [] } = useGetArticles();
+
+  // Compile list of unique articles available to select
+  // We prioritize active articles, then reading history, then fill with default mock articles
+  const availableArticles: Article[] = [];
+  const articleIds = new Set<string>();
+
+  articles.forEach((item) => {
+    if (!articleIds.has(item.id)) {
+      availableArticles.push(item);
+      articleIds.add(item.id);
+    }
+  });
+
+  readingHistory.forEach((item) => {
+    if (!articleIds.has(item.id)) {
+      availableArticles.push(item);
+      articleIds.add(item.id);
+    }
+  });
+
+  MOCK_ARTICLES.forEach((item) => {
+    if (!articleIds.has(item.id)) {
+      availableArticles.push(item);
+      articleIds.add(item.id);
+    }
+  });
 
   // Selected article to focus Q&A on. Undefined = general questions.
   const [selectedArticleId, setSelectedArticleId] = useState<string | undefined>(undefined);
@@ -144,7 +173,7 @@ export default function AskScreen() {
 
     // Add editorial note when focus changes
     const title = id 
-      ? MOCK_ARTICLES.find(a => a.id === id)?.headline 
+      ? availableArticles.find(a => a.id === id)?.headline 
       : "General Briefing";
     
     const contextNote: Message = {
@@ -316,26 +345,7 @@ export default function AskScreen() {
     );
   };
 
-  // Compile list of unique articles available to select
-  // We prioritize reading history, then fill with default mock articles
-  const availableArticles: Article[] = [];
-  const articleIds = new Set<string>();
-
-  readingHistory.forEach((item) => {
-    if (!articleIds.has(item.id)) {
-      availableArticles.push(item);
-      articleIds.add(item.id);
-    }
-  });
-
-  MOCK_ARTICLES.forEach((item) => {
-    if (!articleIds.has(item.id)) {
-      availableArticles.push(item);
-      articleIds.add(item.id);
-    }
-  });
-
-  const selectedArticle = MOCK_ARTICLES.find((a) => a.id === selectedArticleId);
+  const selectedArticle = availableArticles.find((a) => a.id === selectedArticleId);
 
   return (
     <KeyboardAvoidingView

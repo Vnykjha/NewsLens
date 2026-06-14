@@ -16,6 +16,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AnalysisReport,
   ArticlesResponse,
   HealthStatus
 } from './api.schemas';
@@ -176,6 +177,84 @@ export function useGetArticles<TData = Awaited<ReturnType<typeof getArticles>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetArticlesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetArticleAnalysisUrl = (id: string,) => {
+
+
+
+
+  return `/api/articles/${id}/analysis`
+}
+
+/**
+ * Returns LLM-generated comprehensive analysis of the news article
+ * @summary Get article analysis
+ */
+export const getArticleAnalysis = async (id: string, options?: RequestInit): Promise<AnalysisReport> => {
+
+  return customFetch<AnalysisReport>(getGetArticleAnalysisUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetArticleAnalysisQueryKey = (id: string,) => {
+    return [
+    `/api/articles/${id}/analysis`
+    ] as const;
+    }
+
+
+export const getGetArticleAnalysisQueryOptions = <TData = Awaited<ReturnType<typeof getArticleAnalysis>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArticleAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArticleAnalysisQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArticleAnalysis>>> = ({ signal }) => getArticleAnalysis(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArticleAnalysis>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetArticleAnalysisQueryResult = NonNullable<Awaited<ReturnType<typeof getArticleAnalysis>>>
+export type GetArticleAnalysisQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get article analysis
+ */
+
+export function useGetArticleAnalysis<TData = Awaited<ReturnType<typeof getArticleAnalysis>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArticleAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetArticleAnalysisQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

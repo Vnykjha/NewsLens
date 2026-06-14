@@ -39,3 +39,87 @@ export const GetArticlesResponseItem = zod.object({
 export const GetArticlesResponse = zod.array(GetArticlesResponseItem)
 
 
+/**
+ * Returns LLM-generated comprehensive analysis of the news article
+ * @summary Get article analysis
+ */
+export const GetArticleAnalysisParams = zod.object({
+  "id": zod.coerce.string().describe('Article ID')
+})
+
+export const GetArticleAnalysisResponse = zod.object({
+  "articleId": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number(),
+  "sourceReputation": zod.string(),
+  "evidenceStrength": zod.string(),
+  "crossVerification": zod.string(),
+  "potentialBias": zod.array(zod.string()),
+  "tldr": zod.string(),
+  "context": zod.string(),
+  "keyClaims": zod.array(zod.string()),
+  "stakeholders": zod.array(zod.object({
+  "name": zod.string(),
+  "role": zod.string()
+})),
+  "risks": zod.array(zod.string()),
+  "opportunities": zod.array(zod.string()),
+  "futureImplications": zod.string(),
+  "citations": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "publisher": zod.string(),
+  "url": zod.string(),
+  "excerpt": zod.string()
+})),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.string(),
+  "event": zod.string()
+})),
+  "communityNotes": zod.array(zod.object({
+  "id": zod.string(),
+  "author": zod.string(),
+  "content": zod.string(),
+  "upvotes": zod.number(),
+  "timestamp": zod.string(),
+  "sources": zod.array(zod.string()).optional()
+})),
+  "supportingCoverage": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "alternativePerspectives": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "contradictoryCoverage": zod.array(zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "publisher": zod.string(),
+  "publisherInitial": zod.string(),
+  "summary": zod.string(),
+  "publishedAt": zod.string(),
+  "credibilityScore": zod.number()
+})),
+  "mediaAuthenticity": zod.object({
+  "aiGeneratedLikelihood": zod.enum(['Low', 'Medium', 'High']),
+  "metadataAvailable": zod.boolean(),
+  "authenticityIndicators": zod.array(zod.string()),
+  "warnings": zod.array(zod.string())
+})
+})
+
+

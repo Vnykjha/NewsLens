@@ -39,6 +39,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ArticlesResponse"
+  /articles/{id}/analysis:
+    get:
+      operationId: getArticleAnalysis
+      tags: [articles]
+      summary: Get article analysis
+      description: Returns LLM-generated comprehensive analysis of the news article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Article ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisReport"
 components:
   schemas:
     HealthStatus:
@@ -93,4 +113,183 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Article"
-
+    Citation:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        publisher:
+          type: string
+        url:
+          type: string
+        excerpt:
+          type: string
+      required: [id, title, publisher, url, excerpt]
+    TimelineEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+        event:
+          type: string
+      required: [id, date, event]
+    CommunityNote:
+      type: object
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+        content:
+          type: string
+        upvotes:
+          type: integer
+        timestamp:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+      required: [id, author, content, upvotes, timestamp]
+    Perspective:
+      type: object
+      properties:
+        id:
+          type: string
+        headline:
+          type: string
+        publisher:
+          type: string
+        publisherInitial:
+          type: string
+        summary:
+          type: string
+        publishedAt:
+          type: string
+        credibilityScore:
+          type: integer
+      required: [id, headline, publisher, publisherInitial, summary, publishedAt, credibilityScore]
+    MediaAuthenticity:
+      type: object
+      properties:
+        aiGeneratedLikelihood:
+          type: string
+          enum: [Low, Medium, High]
+        metadataAvailable:
+          type: boolean
+        authenticityIndicators:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+      required: [aiGeneratedLikelihood, metadataAvailable, authenticityIndicators, warnings]
+    Stakeholder:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+      required: [name, role]
+    AnalysisReport:
+      type: object
+      properties:
+        articleId:
+          type: string
+        headline:
+          type: string
+        publisher:
+          type: string
+        publishedAt:
+          type: string
+        credibilityScore:
+          type: integer
+        sourceReputation:
+          type: string
+        evidenceStrength:
+          type: string
+        crossVerification:
+          type: string
+        potentialBias:
+          type: array
+          items:
+            type: string
+        tldr:
+          type: string
+        context:
+          type: string
+        keyClaims:
+          type: array
+          items:
+            type: string
+        stakeholders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stakeholder"
+        risks:
+          type: array
+          items:
+            type: string
+        opportunities:
+          type: array
+          items:
+            type: string
+        futureImplications:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+        communityNotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityNote"
+        supportingCoverage:
+          type: array
+          items:
+            $ref: "#/components/schemas/Perspective"
+        alternativePerspectives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Perspective"
+        contradictoryCoverage:
+          type: array
+          items:
+            $ref: "#/components/schemas/Perspective"
+        mediaAuthenticity:
+          $ref: "#/components/schemas/MediaAuthenticity"
+      required:
+        - articleId
+        - headline
+        - publisher
+        - publishedAt
+        - credibilityScore
+        - sourceReputation
+        - evidenceStrength
+        - crossVerification
+        - potentialBias
+        - tldr
+        - context
+        - keyClaims
+        - stakeholders
+        - risks
+        - opportunities
+        - futureImplications
+        - citations
+        - timeline
+        - communityNotes
+        - supportingCoverage
+        - alternativePerspectives
+        - contradictoryCoverage
+        - mediaAuthenticity

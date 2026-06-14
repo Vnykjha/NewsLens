@@ -27,3 +27,83 @@ export interface Article {
 
 export type ArticlesResponse = Article[];
 
+export interface Citation {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string;
+  excerpt: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  date: string;
+  event: string;
+}
+
+export interface CommunityNote {
+  id: string;
+  author: string;
+  content: string;
+  upvotes: number;
+  timestamp: string;
+  sources?: string[];
+}
+
+export interface Perspective {
+  id: string;
+  headline: string;
+  publisher: string;
+  publisherInitial: string;
+  summary: string;
+  publishedAt: string;
+  credibilityScore: number;
+}
+
+export type MediaAuthenticityAiGeneratedLikelihood = typeof MediaAuthenticityAiGeneratedLikelihood[keyof typeof MediaAuthenticityAiGeneratedLikelihood];
+
+
+export const MediaAuthenticityAiGeneratedLikelihood = {
+  Low: 'Low',
+  Medium: 'Medium',
+  High: 'High',
+} as const;
+
+export interface MediaAuthenticity {
+  aiGeneratedLikelihood: MediaAuthenticityAiGeneratedLikelihood;
+  metadataAvailable: boolean;
+  authenticityIndicators: string[];
+  warnings: string[];
+}
+
+export interface Stakeholder {
+  name: string;
+  role: string;
+}
+
+export interface AnalysisReport {
+  articleId: string;
+  headline: string;
+  publisher: string;
+  publishedAt: string;
+  credibilityScore: number;
+  sourceReputation: string;
+  evidenceStrength: string;
+  crossVerification: string;
+  potentialBias: string[];
+  tldr: string;
+  context: string;
+  keyClaims: string[];
+  stakeholders: Stakeholder[];
+  risks: string[];
+  opportunities: string[];
+  futureImplications: string;
+  citations: Citation[];
+  timeline: TimelineEvent[];
+  communityNotes: CommunityNote[];
+  supportingCoverage: Perspective[];
+  alternativePerspectives: Perspective[];
+  contradictoryCoverage: Perspective[];
+  mediaAuthenticity: MediaAuthenticity;
+}
+
